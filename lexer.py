@@ -74,7 +74,7 @@ t_SEMICOLON = r';'
 t_TWO_DOTS = r':'
 t_COMMA = r','
 # Ignored characters
-t_ignore = ' \t\n'
+t_ignore = ' \t'
 
 # Regular expression rules with some action code
 
@@ -101,6 +101,14 @@ def t_STRING_CONST(t):
 def t_COMMENT(t):
     r'\#.*'
     pass
+
+def t_newline(t):
+    r'\n+'
+    t.lexer.lineno += len(t.value)
+
+def t_error(t):
+    print(f'Illegal character {t.value[0]}')
+    t.lexer.skip(1)
 
 # Build the lexer
 lexer = lex.lex()
