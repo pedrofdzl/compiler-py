@@ -19,7 +19,6 @@ test_02 = """
     var x : int;
         y : float;
     
-        
     main {
         x = 2; y = 3.5; print(x); print(y);
     }
@@ -49,8 +48,8 @@ test_03 = """
 
 
 def test_parser():
-    # parser.parse(test_01)
-    # parser.parse(test_02)
+    parser.parse(test_01)
+    parser.parse(test_02)
     parser.parse(test_03)
 
 
