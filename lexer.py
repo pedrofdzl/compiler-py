@@ -74,7 +74,7 @@ t_SEMICOLON = r';'
 t_TWO_DOTS = r':'
 t_COMMA = r','
 # Ignored characters
-t_ignore = ' \t'
+t_ignore = ' \t\n'
 
 # Regular expression rules with some action code
 
@@ -83,14 +83,14 @@ def t_ID(t):
     t.type = reserved_keywords.get(t.value, 'ID')
     return t
 
+def t_FLOAT_CONST(t):
+    r'[-+]?[0-9]+\.[0-9]+([eE][-+]?[0-9]+)?'
+    t.value = float(t.value)
+    return t
+
 def t_INT_CONST(t):
     r'[0-9]+'
     t.value = int(t.value)
-    return t
-
-def t_FLOAT_CONST(t):
-    r'[-+]?[0-9]*\.[0-9]+([eE][-+]?[0-9]+)?'
-    t.value = float(t.value)
     return t
 
 def t_STRING_CONST(t):
