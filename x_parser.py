@@ -8,7 +8,7 @@ lexer. The parser is implemented as a recursive descent parser.
 import ply.yacc as yacc
 
 # Import the list of token names from the lexer
-from lexer import tokens
+from x_lexer import tokens
 
 def p_prog(p):
     """PROG : PROGRAM ID SEMICOLON PROG_1 MAIN BODY END"""
