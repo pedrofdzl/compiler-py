@@ -18,4 +18,4 @@ pip install ply
 
 This compiler was created as part of a small senior year CS project and it is based around this diagram:
 
-![Language Grammar Diagram](https://github.com/pedrofdzl/compiler-py/blob/ac4f42c0a7e8bb6fae1ccc99a7f4ec9250b9acba/Screenshot%202024-05-04%20at%202.41.19.png"Language Grammar Diagram")
+![Language Grammar Diagram](https://github.com/pedrofdzl/compiler-py/blob/ac4f42c0a7e8bb6fae1ccc99a7f4ec9250b9acba/Screenshot%202024-05-04%20at%202.41.19.png)
