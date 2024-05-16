@@ -1,4 +1,5 @@
 from x_parser import parser
+from x_lexer import lexer
 
 # Test cases
 
@@ -31,7 +32,7 @@ test_03 = """
     var x : int;
         y : float;
 
-    func void test_func(x : int, y : float) [
+    void test_func(x : int, y : float) [
         var z : int;
         {
             z = x + 2;
@@ -47,11 +48,19 @@ test_03 = """
 """
 
 
+def test_lexer():
+    lexer.input(test_03)
+    while True:
+        tok = lexer.token()
+        if not tok:
+            break
+        print(tok)
+
+
 def test_parser():
-    parser.parse(test_01)
-    parser.parse(test_02)
     parser.parse(test_03)
 
 
 if __name__ == "__main__":
+    # test_lexer()
     test_parser()

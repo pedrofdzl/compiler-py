@@ -10,8 +10,30 @@ import ply.yacc as yacc
 # Import the list of token names from the lexer
 from x_lexer import tokens
 
+# Import the symbol table and exceptions
+from symbols import Symbol, SymbolTable
+
+# Global variable to store the symbol table
+function_directory = None
+# Scope stack
+scope_stack = []
+# Current id memory for declarations
+id_stack = []
+
 def p_prog(p):
-    """PROG : PROGRAM ID SEMICOLON PROG_1 MAIN BODY END"""
+    """PROG : PROG_N1 PROG_N2 SEMICOLON PROG_1 MAIN BODY END"""
+    print('EoF:', function_directory.lookup(scope_stack.pop()).value)
+
+def p_prog_n1(p):
+    """PROG_N1 : PROGRAM"""
+    global function_directory
+    function_directory = SymbolTable()
+
+def p_prog_n2(p):
+    """PROG_N2 : ID"""
+    print('create variable table for', p[1])
+    function_directory.declare(Symbol(p[1], 'vars', SymbolTable()))
+    scope_stack.append(p[1])
 
 def p_prog_1(p):
     """PROG_1 : VARS PROG_2 
@@ -24,16 +46,36 @@ def p_prog_2(p):
     """
 
 def p_vars(p):
-    """VARS : VAR VARS_1"""
+    """VARS : VARS_N1 VARS_1"""
+
+def p_vars_n1(p):
+    """VARS_N1 : VAR"""
+    if not function_directory.lookup(scope_stack[-1]).value:
+        print('populate value for', scope_stack[-1])
+        scope_vars = function_directory.lookup(scope_stack[-1])
+        scope_vars.value = SymbolTable()
+        function_directory.update(scope_vars)
 
 def p_vars_1(p):
-    """VARS_1 : ID VARS_2"""
+    """VARS_1 : VARS_N2 VARS_2"""
+    
+def p_vars_n2(p):
+    """VARS_N2 : ID"""
+    id_stack.append(p[1])
 
 def p_vars_2(p):
-    """VARS_2 : TWO_DOTS TYPE SEMICOLON VARS_3
+    """VARS_2 : TWO_DOTS VARS_N3 SEMICOLON VARS_3
             | COMMA VARS_1
-            | empty
     """
+
+def p_vars_n3(p):
+    """VARS_N3 : TYPE"""
+    for id in id_stack:
+        print('declare', id, 'as', p[1])
+        scope_vars = function_directory.lookup(scope_stack[-1])
+        scope_vars.value.declare(Symbol(id, p[1]))
+        function_directory.update(scope_vars)
+    id_stack.clear()
 
 def p_vars_3(p):
     """VARS_3 : VARS_1
@@ -41,18 +83,44 @@ def p_vars_3(p):
     """
 
 def p_funcs(p):
-    """FUNCS : VOID ID BRACKET_OPEN FUNCS_1 BRACKET_CLOSE SQ_BRACKET_OPEN FUNCS_3 BODY SQ_BRACKET_CLOSE SEMICOLON"""
+    """FUNCS : VOID FUNCS_N1 BRACKET_OPEN FUNCS_1 BRACKET_CLOSE SQ_BRACKET_OPEN FUNCS_4 BODY SQ_BRACKET_CLOSE FUNCS_N3"""
+
+def p_funcs_n1(p):
+    """FUNCS_N1 : ID"""
+    print('create function', p[1])
+    function_directory.declare(Symbol(p[1], 'vars', SymbolTable()))
+    scope_stack.append(p[1])   
 
 def p_funcs_1(p):
-    """FUNCS_1 : ID TWO_DOTS TYPE FUNCS_2"""
-
-def p_funcs_2(p):
-    """FUNCS_2 : COMMA FUNCS_1
+    """FUNCS_1 : FUNCS_2
             | empty
     """
 
+def p_funcs_2(p):
+    """FUNCS_2 : FUNCS_N2 FUNCS_3
+            | empty
+    """
+
+def p_funcs_n2(p):
+    """FUNCS_N2 : ID TWO_DOTS TYPE"""
+    print('declare param', p[1], 'as', p[3])
+    scope_vars = function_directory.lookup(scope_stack[-1])
+    scope_vars.value.declare(Symbol(p[1], p[3]))
+    function_directory.update(scope_vars)
+
 def p_funcs_3(p):
-    """FUNCS_3 : VARS
+    """FUNCS_3 : COMMA FUNCS_2
+            | empty
+    """
+
+def p_funcs_n3(p):
+    """FUNCS_N3 : SEMICOLON"""
+    scope_to_pop = scope_stack.pop()
+    print('EoFunc:', function_directory.lookup(scope_to_pop).value)
+    function_directory.remove(scope_to_pop)
+
+def p_funcs_4(p):
+    """FUNCS_4 : VARS
             | empty
     """
 
@@ -60,6 +128,7 @@ def p_type(p):
     """TYPE : INT
             | FLOAT
     """
+    p[0] = p[1]
 
 def p_body(p):
     """BODY : CURLY_BRACKET_OPEN BODY_1"""
