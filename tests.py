@@ -47,6 +47,58 @@ test_03 = """
     end
 """
 
+test_04 = """
+    program test;
+
+    var x : int;
+        y : float;
+        z : int;
+
+    main {
+        x = 2;
+        z = 3;
+
+        y = (-x + z) * -2.5;
+    }
+    end
+"""
+
+test_05 = """
+    program test;
+
+    var a : float;
+        b : float;
+        c : float;
+        d : float;
+        e : float;
+        f : float;
+        g : float;
+        h : float;
+        j : float;
+        k : float;
+
+    main {
+        a = b + c * (d - e / f) * h;
+        b = e - f;
+        do {
+            h = j * k + b;
+            if (b < h) {
+                b = h + j;
+                do {
+                    print (a + b * c, d - e);
+                    b = b - j;
+                } while (b > a + c);
+            } else {
+                do {
+                    a = a + b;
+                    print (b - d);
+                } while (a - d < c + b);
+            };
+        } while (a * b - c > d * e / (g + h));
+        f = a + b;
+    }
+    end
+"""
 
 def test_lexer():
     lexer.input(test_03)
@@ -58,7 +110,7 @@ def test_lexer():
 
 
 def test_parser():
-    parser.parse(test_03)
+    parser.parse(test_05)
 
 
 if __name__ == "__main__":

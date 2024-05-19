@@ -7,22 +7,35 @@ lexer. The parser is implemented as a recursive descent parser.
 
 import ply.yacc as yacc
 
-# Import the list of token names from the lexer
 from x_lexer import tokens
-
-# Import the symbol table and exceptions
+from stack import Stack
 from symbols import Symbol, SymbolTable
+from quadruples import QuadrupleList, TempManager
+from semantic import validate_semantics
 
 # Global variable to store the symbol table
 function_directory = None
-# Scope stack
-scope_stack = []
-# Current id memory for declarations
-id_stack = []
+# Scope stack (function declaration)
+scope_stack = Stack('scope_stack')
+# ID stack (variable declaration)
+id_stack = Stack('id_stack')
+# Jump Stack (conditions and cycles)
+jump_stack = Stack('jump_stack')
+# Operator Stack (expressions)
+operator_stack = Stack('operator_stack')
+# Operand Stack (expressions)
+operand_stack = Stack('operand_stack')
+# Operator Type Stack (expressions)
+operand_type_stack = Stack('operand_type_stack')
+# Quadruple List
+quadruples = QuadrupleList()
+# Temp Manager
+temp_manager = TempManager()
 
 def p_prog(p):
     """PROG : PROG_N1 PROG_N2 SEMICOLON PROG_1 MAIN BODY END"""
-    print('EoF:', function_directory.lookup(scope_stack.pop()).value)
+    print('EoF:', function_directory.lookup(scope_stack.pop()).child)
+    print(quadruples)
 
 def p_prog_n1(p):
     """PROG_N1 : PROGRAM"""
@@ -31,9 +44,8 @@ def p_prog_n1(p):
 
 def p_prog_n2(p):
     """PROG_N2 : ID"""
-    print('create variable table for', p[1])
     function_directory.declare(Symbol(p[1], 'vars', SymbolTable()))
-    scope_stack.append(p[1])
+    scope_stack.push(p[1])
 
 def p_prog_1(p):
     """PROG_1 : VARS PROG_2 
@@ -50,10 +62,9 @@ def p_vars(p):
 
 def p_vars_n1(p):
     """VARS_N1 : VAR"""
-    if not function_directory.lookup(scope_stack[-1]).value:
-        print('populate value for', scope_stack[-1])
-        scope_vars = function_directory.lookup(scope_stack[-1])
-        scope_vars.value = SymbolTable()
+    if not function_directory.lookup(scope_stack.peek()).child:
+        scope_vars = function_directory.lookup(scope_stack.peek())
+        scope_vars.child = SymbolTable()
         function_directory.update(scope_vars)
 
 def p_vars_1(p):
@@ -61,7 +72,7 @@ def p_vars_1(p):
     
 def p_vars_n2(p):
     """VARS_N2 : ID"""
-    id_stack.append(p[1])
+    id_stack.push(p[1])
 
 def p_vars_2(p):
     """VARS_2 : TWO_DOTS VARS_N3 SEMICOLON VARS_3
@@ -70,10 +81,10 @@ def p_vars_2(p):
 
 def p_vars_n3(p):
     """VARS_N3 : TYPE"""
-    for id in id_stack:
+    for id in id_stack.items():
         print('declare', id, 'as', p[1])
-        scope_vars = function_directory.lookup(scope_stack[-1])
-        scope_vars.value.declare(Symbol(id, p[1]))
+        scope_vars = function_directory.lookup(scope_stack.peek())
+        scope_vars.child.declare(Symbol(id, p[1]))
         function_directory.update(scope_vars)
     id_stack.clear()
 
@@ -89,7 +100,7 @@ def p_funcs_n1(p):
     """FUNCS_N1 : ID"""
     print('create function', p[1])
     function_directory.declare(Symbol(p[1], 'vars', SymbolTable()))
-    scope_stack.append(p[1])   
+    scope_stack.push(p[1])   
 
 def p_funcs_1(p):
     """FUNCS_1 : FUNCS_2
@@ -103,9 +114,8 @@ def p_funcs_2(p):
 
 def p_funcs_n2(p):
     """FUNCS_N2 : ID TWO_DOTS TYPE"""
-    print('declare param', p[1], 'as', p[3])
-    scope_vars = function_directory.lookup(scope_stack[-1])
-    scope_vars.value.declare(Symbol(p[1], p[3]))
+    scope_vars = function_directory.lookup(scope_stack.peek())
+    scope_vars.child.declare(Symbol(p[1], p[3]))
     function_directory.update(scope_vars)
 
 def p_funcs_3(p):
@@ -116,7 +126,7 @@ def p_funcs_3(p):
 def p_funcs_n3(p):
     """FUNCS_N3 : SEMICOLON"""
     scope_to_pop = scope_stack.pop()
-    print('EoFunc:', function_directory.lookup(scope_to_pop).value)
+    print('EoFunc:', function_directory.lookup(scope_to_pop).child)
     function_directory.remove(scope_to_pop)
 
 def p_funcs_4(p):
@@ -147,18 +157,79 @@ def p_statement(p):
     """
 
 def p_assignment(p):
-    """ASSIGNMENT : ID ASSIGN EXPRESSION SEMICOLON"""
+    """ASSIGNMENT : ASSIGNMENT_N1 ASSIGNMENT_N2 ASSIGNMENT_N3 SEMICOLON"""
+
+def p_assignment_n1(p):
+    """ASSIGNMENT_N1 : IDENTIFIER"""
+
+def p_assignment_n2(p):
+    """ASSIGNMENT_N2 : ASSIGN"""
+    operator_stack.push(p[1])
+
+def p_assignment_n3(p):
+    """ASSIGNMENT_N3 : EXPRESSION"""
+    if operator_stack.peek() == '=':
+        operator = operator_stack.pop()
+        operand = operand_stack.pop()
+        operand_type = operand_type_stack.pop()
+        assignee = operand_stack.pop()
+        assignee_type = operand_type_stack.pop()
+
+        result = assignee
+        result_type = validate_semantics(assignee_type, operand_type, operator)
+        
+        quadruples.add(operator, operand, None, result)
+
+        operand_stack.push(result)
+        operand_type_stack.push(result_type)
 
 def p_condition(p):
-    """CONDITION : IF BRACKET_OPEN EXPRESSION BRACKET_CLOSE BODY CONDITION_1"""
+    """CONDITION : IF BRACKET_OPEN EXPRESSION CONDITION_N1 BODY CONDITION_1"""
+
+def p_condition_n1(p):
+    """CONDITION_N1 : BRACKET_CLOSE"""
+    expression_type = operand_type_stack.pop()
+
+    if expression_type != 'bool':
+        raise Exception('Condition expression must be of type bool')
+    else:
+        expression_result = operand_stack.pop()
+        quadruples.add('GOTOF', expression_result, None, None)
+        jump_stack.push(quadruples.current())
 
 def p_condition_1(p):
-    """CONDITION_1 : ELSE BODY SEMICOLON
+    """CONDITION_1 : CONDITION_N3 BODY CONDITION_N2
                 | SEMICOLON
     """
 
+def p_condition_n2(p):
+    """CONDITION_N2 : SEMICOLON"""
+    end = jump_stack.pop()
+    quadruples.fill(end, quadruples.current() + 1)
+
+def p_condition_n3(p):
+    """CONDITION_N3 : ELSE"""
+    quadruples.add('GOTO', None, None, None)
+    false = jump_stack.pop()
+    jump_stack.push(quadruples.current())
+    quadruples.fill(false, quadruples.current() + 1)
+
 def p_cycle(p):
-    """CYCLE : WHILE BODY DO BRACKET_OPEN EXPRESSION BRACKET_CLOSE SEMICOLON"""
+    """CYCLE : CYCLE_N1 BODY WHILE BRACKET_OPEN EXPRESSION CYCLE_N2 SEMICOLON"""
+
+def p_cylce_n1(p):
+    """CYCLE_N1 : DO"""
+    jump_stack.push(quadruples.current() + 1)
+
+def p_cycle_n2(p):
+    """CYCLE_N2 : BRACKET_CLOSE"""
+    expression_type = operand_type_stack.pop()
+
+    if expression_type != 'bool':
+        raise Exception('Cycle expression must be of type bool')
+    else:
+        expression_result = operand_stack.pop()
+        quadruples.add('GOTOT', expression_result, None, jump_stack.pop())
 
 def p_f_call(p):
     """F_CALL : ID BRACKET_OPEN F_CALL_1"""
@@ -188,49 +259,169 @@ def p_expression(p):
     """EXPRESSION : EXP EXPRESSION_1"""
 
 def p_expression_1(p):
-    """EXPRESSION_1 : LESS_THAN EXPRESSION
-                    | MORE_THAN EXPRESSION
-                    | LESS_THAN_EQUAL EXPRESSION
-                    | MORE_THAN_EQUAL EXPRESSION
-                    | EQUAL EXPRESSION
-                    | NOT_EQUAL EXPRESSION
+    """EXPRESSION_1 : EXPRESSION_N1 EXPRESSION_N2
                     | empty
     """
 
+def p_expression_n1(p):
+    """EXPRESSION_N1 : LESS_THAN
+                    | MORE_THAN
+                    | LESS_THAN_EQUAL
+                    | MORE_THAN_EQUAL
+                    | EQUAL
+                    | NOT_EQUAL
+    """
+    operator_stack.push(p[1])
+
+def p_expression_n2(p):
+    """EXPRESSION_N2 : EXP"""
+    if operator_stack.peek() in ['<', '>', '<=', '>=', '==', '!=']:
+        operator = operator_stack.pop()
+        right_operand = operand_stack.pop()
+        right_operand_type = operand_type_stack.pop()
+        left_operand = operand_stack.pop()
+        left_operand_type = operand_type_stack.pop()
+
+        result = temp_manager.new_temp()
+        result_type = validate_semantics(left_operand_type, right_operand_type, operator)
+
+        quadruples.add(operator, left_operand, right_operand, result)
+
+        operand_stack.push(result)
+        operand_type_stack.push(result_type)
+
 def p_exp(p):
-    """EXP : TERM EXP_1"""
+    """EXP : EXP_N1 EXP_1"""
+
+def p_exp_n1(p):
+    """EXP_N1 : TERM"""
+    if operator_stack.peek() in ['+', '-']:
+        operator = operator_stack.pop()
+        right_operand = operand_stack.pop()
+        right_operand_type = operand_type_stack.pop()
+        left_operand = operand_stack.pop()
+        left_operand_type = operand_type_stack.pop()
+
+        result = temp_manager.new_temp()
+        result_type = validate_semantics(left_operand_type, right_operand_type, operator)
+
+        quadruples.add(operator, left_operand, right_operand, result)
+
+        operand_stack.push(result)
+        operand_type_stack.push(result_type)
 
 def p_exp_1(p):
-    """EXP_1 : ADD EXP
-            | SUBTRACT EXP
+    """EXP_1 : EXP_N2 EXP
             | empty
     """
+
+def p_exp_n2(p):
+    """EXP_N2 : ADD
+            | SUBTRACT
+    """
+    operator_stack.push(p[1])
 
 def p_term(p):
-    """TERM : FACTOR TERM_1"""
+    """TERM : TERM_N1 TERM_1"""
+
+def p_term_n1(p):
+    """TERM_N1 : FACTOR"""
+    if operator_stack.peek() in ['*', '/']:
+        operator = operator_stack.pop()
+        right_operand = operand_stack.pop()
+        right_operand_type = operand_type_stack.pop()
+        left_operand = operand_stack.pop()
+        left_operand_type = operand_type_stack.pop()
+
+        result = temp_manager.new_temp()
+        result_type = validate_semantics(left_operand_type, right_operand_type, operator)
+
+        quadruples.add(operator, left_operand, right_operand, result)
+
+        operand_stack.push(result)
+        operand_type_stack.push(result_type)
 
 def p_term_1(p):
-    """TERM_1 : MULTIPLY TERM
-            | DIVIDE TERM
+    """TERM_1 : TERM_N2 TERM
             | empty
     """
 
+def p_term_n2(p):
+    """TERM_N2 : MULTIPLY
+            | DIVIDE
+    """
+    operator_stack.push(p[1])
+
 def p_factor(p):
-    """FACTOR : BRACKET_OPEN EXPRESSION BRACKET_CLOSE
-            | ADD FACTOR_1
-            | SUBTRACT FACTOR_1
+    """FACTOR : FACTOR_N1 EXPRESSION FACTOR_N2
+            | FACTOR_N3 FACTOR_1 FACTOR_N4
             | FACTOR_1
     """
 
+def p_factor_n1(p):
+    """FACTOR_N1 : BRACKET_OPEN"""
+    operator_stack.push(p[1])
+
+def p_factor_n2(p):
+    """FACTOR_N2 : BRACKET_CLOSE"""
+    operator_stack.pop()
+
+def p_factor_n3(p):
+    """FACTOR_N3 : ADD
+                | SUBTRACT
+    """
+    operator_stack.push(p[1])
+
+def p_factor_n4(p):
+    """FACTOR_N4 : empty"""
+    operator = '*'
+    right_operand = operand_stack.pop()
+    right_operand_type = operand_type_stack.pop()
+    left_operand = -1 if operator_stack.pop() == '-' else 1
+    left_operand_type = 'int'
+
+    result = temp_manager.new_temp()
+    result_type = validate_semantics(left_operand_type, right_operand_type, operator)
+
+    quadruples.add(operator, left_operand, right_operand, result)
+
+    operand_stack.push(result)
+    operand_type_stack.push(result_type)
+
 def p_factor_1(p):
     """FACTOR_1 : CONSTANT
-                | ID
+                | IDENTIFIER
     """
 
+def p_identifier(p):
+    """IDENTIFIER : ID"""
+    id_symbol = None
+
+    for scope in scope_stack.items():
+        if function_directory.lookup(scope).child.lookup(p[1]):
+            id_symbol = function_directory.lookup(scope).child.lookup(p[1])
+            break
+    
+    if not id_symbol:
+        raise Exception(f'Undeclared variable {p[1]}')
+    
+    operand_stack.push(p[1])
+    operand_type_stack.push(id_symbol.type)
+
 def p_constant(p):
-    """CONSTANT : INT_CONST
-                | FLOAT_CONST
+    """CONSTANT : CONSTANT_INT
+                | CONSTANT_FLOAT
     """
+
+def p_constant_int(p):
+    """CONSTANT_INT : INT_CONST"""
+    operand_stack.push(p[1])
+    operand_type_stack.push('int')
+
+def p_constant_float(p):
+    """CONSTANT_FLOAT : FLOAT_CONST"""
+    operand_stack.push(p[1])
+    operand_type_stack.push('float')
 
 def p_empty(p):
     """empty :"""

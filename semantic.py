@@ -3,6 +3,9 @@ Semantic Cube for Compiler Operations module.
 
 This module contains the semantic cube for the compiler operations.
 """
+from exceptions import (
+    InvalidOperationError,
+)
 
 semantic_cube = {
     'int': {
@@ -111,3 +114,26 @@ semantic_cube = {
         }
     }
 }
+
+def validate_semantics (left_operand_type, right_operand_type, operator):
+    """
+    Validate the types of the operands and the operator.
+
+    This function validates the types of the operands and the operator
+    using the semantic cube.
+
+    Parameters:
+    left_operand_type (str): The type of the left operand.
+    right_operand_type (str): The type of the right operand.
+    operator (str): The operator.
+
+    Returns:
+    str: The resulting type of the operation or an error if the operation is invalid.
+    """
+    try:
+        result_type = semantic_cube[left_operand_type][right_operand_type][operator]
+        if result_type == 'error':
+            raise InvalidOperationError(f'Invalid operation: {left_operand_type} {operator} {right_operand_type}')
+        return result_type
+    except KeyError:
+        raise InvalidOperationError(f'Invalid operation: {left_operand_type} {operator} {right_operand_type}')

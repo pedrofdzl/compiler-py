@@ -9,10 +9,10 @@ from exceptions import (
 )
 
 class Symbol:
-    def __init__(self, name, type, value=None):
-        self.name = name
-        self.type = type
-        self.value = value
+    def __init__(self, name, type, child=None):
+        self.name = name # Name of the symbol
+        self.type = type # Type of the symbol
+        self.child = child # Symbol's child (when symbol is a table)
 
     def __str__(self):
         return f'{self.name}: {self.type}'
@@ -23,7 +23,7 @@ class Symbol:
 
 class SymbolTable:
     def __init__(self):
-        self.symbols = {}
+        self.symbols = {} # Dictionary to store symbols (simulating table)
 
     def declare(self, symbol):
         if symbol.name in self.symbols:
