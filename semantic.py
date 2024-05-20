@@ -3,6 +3,7 @@ Semantic Cube for Compiler Operations module.
 
 This module contains the semantic cube for the compiler operations.
 """
+
 from exceptions import (
     InvalidOperationError,
 )
@@ -12,6 +13,8 @@ semantic_cube = {
         'int': {
             '<': 'bool',
             '>': 'bool',
+            '<=': 'bool',
+            '>=': 'bool',
             '==': 'bool',
             '!=': 'bool',
             '=': 'int',
@@ -23,6 +26,8 @@ semantic_cube = {
         'float': {
             '<': 'bool',
             '>': 'bool',
+            '<=': 'bool',
+            '>=': 'bool',
             '==': 'bool',
             '!=': 'bool',
             '=': 'int',
@@ -34,6 +39,8 @@ semantic_cube = {
         'bool': {
             '<': 'bool',
             '>': 'bool',
+            '<=': 'bool',
+            '>=': 'bool',
             '==': 'bool',
             '!=': 'bool',
             '=': 'int',
@@ -47,6 +54,8 @@ semantic_cube = {
         'int': {
             '<': 'bool',
             '>': 'bool',
+            '<=': 'bool',
+            '>=': 'bool',
             '==': 'bool',
             '!=': 'bool',
             '=': 'float',
@@ -58,6 +67,8 @@ semantic_cube = {
         'float': {
             '<': 'bool',
             '>': 'bool',
+            '<=': 'bool',
+            '>=': 'bool',
             '==': 'bool',
             '!=': 'bool',
             '=': 'float',
@@ -69,6 +80,8 @@ semantic_cube = {
         'bool': {
             '<': 'bool',
             '>': 'bool',
+            '<=': 'bool',
+            '>=': 'bool',
             '==': 'bool',
             '!=': 'bool',
             '=': 'float',
@@ -82,6 +95,8 @@ semantic_cube = {
         'int': {
             '<': 'bool',
             '>': 'bool',
+            '<=': 'bool',
+            '>=': 'bool',
             '==': 'bool',
             '!=': 'bool',
             '=': 'error',
@@ -93,6 +108,8 @@ semantic_cube = {
         'float': {
             '<': 'bool',
             '>': 'bool',
+            '<=': 'bool',
+            '>=': 'bool',
             '==': 'bool',
             '!=': 'bool',
             '=': 'error',
@@ -104,6 +121,8 @@ semantic_cube = {
         'bool': {
             '<': 'bool',
             '>': 'bool',
+            '<=': 'bool',
+            '>=': 'bool',
             '==': 'bool',
             '!=': 'bool',
             '=': 'error',
@@ -123,12 +142,12 @@ def validate_semantics (left_operand_type, right_operand_type, operator):
     using the semantic cube.
 
     Parameters:
-    left_operand_type (str): The type of the left operand.
-    right_operand_type (str): The type of the right operand.
-    operator (str): The operator.
+    - left_operand_type (str): The type of the left operand.
+    - right_operand_type (str): The type of the right operand.
+    - operator (str): The operator.
 
     Returns:
-    str: The resulting type of the operation or an error if the operation is invalid.
+    - str: The resulting type of the operation or an error if the operation is invalid.
     """
     try:
         result_type = semantic_cube[left_operand_type][right_operand_type][operator]

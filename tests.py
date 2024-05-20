@@ -1,9 +1,10 @@
+import argparse
 from x_parser import parser
 from x_lexer import lexer
 
 # Test cases
 
-test_01 = """
+test_cases = ["""
     program test;
 
     var x : int;
@@ -12,9 +13,7 @@ test_01 = """
         x = 2; print(x);
     }
     end
-"""
-
-test_02 = """
+""","""
     program test;
 
     var x : int;
@@ -24,9 +23,7 @@ test_02 = """
         x = 2; y = 3.5; print(x); print(y);
     }
     end
-"""
-
-test_03 = """
+""","""
     program test;
 
     var x : int;
@@ -45,9 +42,7 @@ test_03 = """
         test_func(x, y);
     }
     end
-"""
-
-test_04 = """
+""","""
     program test;
 
     var x : int;
@@ -61,9 +56,7 @@ test_04 = """
         y = (-x + z) * -2.5;
     }
     end
-"""
-
-test_05 = """
+""","""
     program test;
 
     var a : float;
@@ -78,6 +71,7 @@ test_05 = """
         k : float;
 
     main {
+        print ('Hello, World!');
         a = b + c * (d - e / f) * h;
         b = e - f;
         do {
@@ -87,7 +81,7 @@ test_05 = """
                 do {
                     print (a + b * c, d - e);
                     b = b - j;
-                } while (b > a + c);
+                } while (b >= a + c);
             } else {
                 do {
                     a = a + b;
@@ -98,10 +92,10 @@ test_05 = """
         f = a + b;
     }
     end
-"""
+"""]
 
-def test_lexer():
-    lexer.input(test_03)
+def test_lexer(n):
+    lexer.input(test_cases[n])
     while True:
         tok = lexer.token()
         if not tok:
@@ -109,10 +103,19 @@ def test_lexer():
         print(tok)
 
 
-def test_parser():
-    parser.parse(test_05)
+def test_parser(n):
+    parser.parse(test_cases[n])
 
 
 if __name__ == "__main__":
-    # test_lexer()
-    test_parser()
+    argparser = argparse.ArgumentParser(description="Run specific test case.")
+    argparser.add_argument("test_number", type=int, help="The test case number to run (1-5).")
+    argparser.add_argument("--lexer", action="store_true", help="Run lexer test.")
+    argparser.add_argument("--parser", action="store_true", help="Run parser test.")
+    args = argparser.parse_args()
+
+    if args.lexer:
+        test_lexer(args.test_number - 1)
+
+    if args.parser:
+        test_parser(args.test_number - 1)
