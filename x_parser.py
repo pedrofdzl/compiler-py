@@ -37,8 +37,9 @@ temp_manager = TempManager()
 
 def p_prog(p):
     """PROG : PROG_N1 PROG_N2 SEMICOLON PROG_1 MAIN BODY END"""
-    print('EoF:', function_directory.lookup(scope_stack.pop()).child)
-    print(quadruples)
+    print('Global:', function_directory.lookup(scope_stack.pop()).child)
+    # print('Quadruples:')
+    # print(quadruples)
 
 def p_prog_n1(p):
     """PROG_N1 : PROGRAM"""
@@ -47,7 +48,7 @@ def p_prog_n1(p):
 
 def p_prog_n2(p):
     """PROG_N2 : ID"""
-    function_directory.declare(Symbol(p[1], 'vars', SymbolTable()))
+    function_directory.declare(Symbol(p[1], 'table.global', SymbolTable()))
     scope_stack.push(p[1])
 
 def p_prog_1(p):
@@ -86,7 +87,7 @@ def p_vars_n3(p):
     """VARS_N3 : TYPE"""
     for id in id_stack.items():
         scope_vars = function_directory.lookup(scope_stack.peek())
-        scope_vars.child.declare(Symbol(id, p[1]))
+        scope_vars.child.declare(Symbol(id, f'var.{p[1]}'))
         function_directory.update(scope_vars)
     id_stack.clear()
 
@@ -100,8 +101,8 @@ def p_funcs(p):
 
 def p_funcs_n1(p):
     """FUNCS_N1 : ID"""
-    function_directory.declare(Symbol(p[1], 'vars', SymbolTable()))
-    scope_stack.push(p[1])   
+    function_directory.declare(Symbol(p[1], 'table.local', SymbolTable()))
+    scope_stack.push(p[1])
 
 def p_funcs_1(p):
     """FUNCS_1 : FUNCS_2
@@ -116,7 +117,7 @@ def p_funcs_2(p):
 def p_funcs_n2(p):
     """FUNCS_N2 : ID TWO_DOTS TYPE"""
     scope_vars = function_directory.lookup(scope_stack.peek())
-    scope_vars.child.declare(Symbol(p[1], p[3]))
+    scope_vars.child.declare(Symbol(p[1], f'param.{p[3]}'))
     function_directory.update(scope_vars)
 
 def p_funcs_3(p):
@@ -127,7 +128,7 @@ def p_funcs_3(p):
 def p_funcs_n3(p):
     """FUNCS_N3 : SEMICOLON"""
     scope_to_pop = scope_stack.pop()
-    print('EoFunc:', function_directory.lookup(scope_to_pop).child)
+    print(f'Functon: {scope_to_pop}', function_directory.lookup(scope_to_pop).child)
     function_directory.remove(scope_to_pop)
 
 def p_funcs_4(p):

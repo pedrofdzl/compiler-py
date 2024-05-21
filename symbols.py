@@ -13,14 +13,14 @@ class Symbol:
 
     Attributes:
     - name (str): The name of the symbol.
-    - type (str): The type of the symbol.
+    - type (str): The type of the symbol [var.int, var.float, param.int, param.float, table.global, table.local].
     - child (SymbolTable): The child symbol table (when symbol is a table).
     """
 
     def __init__(self, name, type, child=None):
-        self.name = name # Name of the symbol
-        self.type = type # Type of the symbol
-        self.child = child # Symbol's child (when symbol is a table)
+        self.name = name
+        self.type = type
+        self.child = child
 
     def __str__(self):
         return f'{self.name}: {self.type}'
@@ -38,7 +38,7 @@ class SymbolTable:
     """
 
     def __init__(self):
-        self.symbols = {} # Dictionary to store symbols (simulating table)
+        self.symbols = {}
 
     def declare(self, symbol):
         """
