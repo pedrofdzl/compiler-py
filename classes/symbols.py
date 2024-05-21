@@ -2,7 +2,7 @@
 Symbol tables for data structures module.
 """
 
-from exceptions import (
+from classes.exceptions import (
     AlreadyDeclaredError,
     UndeclaredError,
 )

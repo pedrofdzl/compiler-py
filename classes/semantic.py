@@ -4,7 +4,7 @@ Semantic Cube for Compiler Operations module.
 This module contains the semantic cube for the compiler operations.
 """
 
-from exceptions import (
+from classes.exceptions import (
     InvalidOperationError,
 )
 
@@ -152,7 +152,7 @@ def validate_semantics (left_operand_type, right_operand_type, operator):
     try:
         left_operand_type = left_operand_type.split('.')[-1]
         right_operand_type = right_operand_type.split('.')[-1]
-        
+
         result_type = semantic_cube[left_operand_type][right_operand_type][operator]
         if result_type == 'error':
             raise InvalidOperationError(f'Invalid operation: {left_operand_type} {operator} {right_operand_type}')

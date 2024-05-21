@@ -73,6 +73,17 @@ class QuadrupleList:
         """
         self.quadruples[index].result = value
 
+    def output(self):
+        """
+        Output the quadruples as text.
+
+        Returns:
+        - str: The quadruples as text format:
+            operator left_operand right_operand result
+            ...
+        """
+        return '\n'.join([f'{q.operator}ψ{q.left_operand}ψ{q.right_operand}ψ{q.result}' for q in self.quadruples])
+
     def __str__(self):
         return '\n'.join([f'{str(i)} => ({str(q)})' for i, q in enumerate(self.quadruples)])
     

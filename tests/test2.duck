@@ -1,0 +1,35 @@
+program test;
+
+var a : float;
+    b : float;
+    c : float;
+    d : float;
+    e : float;
+    f : float;
+    g : float;
+    h : float;
+    j : float;
+    k : float;
+
+main {
+    print ('Hello, World!');
+    a = b + c * (d - e / f) * h;
+    b = e - f;
+    do {
+        h = j * k + b;
+        if (b < h) {
+            b = h + j;
+            do {
+                print (a + b * c, d - e);
+                b = b - j;
+            } while (b >= a + c);
+        } else {
+            do {
+                a = a + b;
+                print (b - d);
+            } while (a - d < c + b);
+        };
+    } while (a * b - c > d * e / (g + h));
+    f = a + b;
+}
+end

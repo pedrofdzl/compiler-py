@@ -7,11 +7,11 @@ lexer. The parser is implemented as a recursive descent parser.
 import ply.yacc as yacc
 
 from x_lexer import tokens
-from stack import Stack
-from symbols import Symbol, SymbolTable
-from quadruples import QuadrupleList, TempManager
-from semantic import validate_semantics
-from exceptions import (
+from classes.stack import Stack
+from classes.symbols import Symbol, SymbolTable
+from classes.quadruples import QuadrupleList, TempManager
+from classes.semantic import validate_semantics
+from classes.exceptions import (
     UndeclaredError,
     InvalidTypeError,
 )
@@ -24,6 +24,12 @@ scope_stack = Stack('scope_stack')
 id_stack = Stack('id_stack')
 # Jump Stack (conditions and cycles)
 jump_stack = Stack('jump_stack')
+# Function Call Stack (function calls)
+f_call_stack = Stack('f_call_stack')
+# Function Call Param Stack (function calls)
+f_call_param_stack = Stack('f_call_param_stack')
+# Function Call Param Type Stack (function calls)
+f_call_param_type_stack = Stack('f_call_param_type_stack')
 # Operator Stack (expressions)
 operator_stack = Stack('operator_stack')
 # Operand Stack (expressions)
@@ -37,7 +43,8 @@ temp_manager = TempManager()
 
 def p_prog(p):
     """PROG : PROG_N1 PROG_N2 SEMICOLON PROG_1 MAIN BODY END"""
-    print('Global:', function_directory.lookup(scope_stack.pop()).child)
+    # print('Function Directory:', function_directory)
+    # print('Global:', function_directory.lookup(scope_stack.pop()).child)
     # print('Quadruples:')
     # print(quadruples)
 
@@ -97,7 +104,7 @@ def p_vars_3(p):
     """
 
 def p_funcs(p):
-    """FUNCS : VOID FUNCS_N1 BRACKET_OPEN FUNCS_1 BRACKET_CLOSE SQ_BRACKET_OPEN FUNCS_4 BODY SQ_BRACKET_CLOSE FUNCS_N3"""
+    """FUNCS : VOID FUNCS_N1 BRACKET_OPEN FUNCS_1 BRACKET_CLOSE SQ_BRACKET_OPEN FUNCS_N4 BODY SQ_BRACKET_CLOSE FUNCS_N3"""
 
 def p_funcs_n1(p):
     """FUNCS_N1 : ID"""
@@ -128,13 +135,17 @@ def p_funcs_3(p):
 def p_funcs_n3(p):
     """FUNCS_N3 : SEMICOLON"""
     scope_to_pop = scope_stack.pop()
-    print(f'Functon: {scope_to_pop}', function_directory.lookup(scope_to_pop).child)
-    function_directory.remove(scope_to_pop)
+    # print(f'Functon: {scope_to_pop}', function_directory.lookup(scope_to_pop).child)
+    start = jump_stack.pop()
+    quadruples.fill(start, quadruples.current() + 1)
 
-def p_funcs_4(p):
-    """FUNCS_4 : VARS
+def p_funcs_n4(p):
+    """FUNCS_N4 : VARS
             | empty
     """
+    #! NEURALGIC EINS
+    quadruples.add('GOTO', None, None, None)
+    jump_stack.push(quadruples.current())
 
 def p_type(p):
     """TYPE : INT
@@ -234,15 +245,46 @@ def p_cycle_n2(p):
         quadruples.add('GOTOT', expression_result, None, jump_stack.pop())
 
 def p_f_call(p):
-    """F_CALL : ID BRACKET_OPEN F_CALL_1"""
+    """F_CALL : F_CALL_N1 BRACKET_OPEN F_CALL_1"""
+
+def p_f_call_n1(p):
+    """F_CALL_N1 : ID"""
+    function_directory.lookup(p[1])
+    f_call_stack.push(p[1])
 
 def p_f_call_1(p):
-    """F_CALL_1 : EXPRESSION F_CALL_2"""
+    """F_CALL_1 : F_CALL_N2 F_CALL_2"""
+
+def p_f_call_n2(p):
+    """F_CALL_N2 : EXPRESSION"""
+    f_call_param_stack.push(operand_stack.pop())
+    f_call_param_type_stack.push(operand_type_stack.pop())
 
 def p_f_call_2(p):
     """F_CALL_2 : COMMA F_CALL_1
-                | BRACKET_CLOSE SEMICOLON
+                | BRACKET_CLOSE F_CALL_N3
     """
+
+def p_f_call_n3(p):
+    """F_CALL_N3 : SEMICOLON"""
+    function_id = f_call_stack.pop()
+    function_table = function_directory.lookup(function_id)
+    function_params = [symbol[1] for symbol in function_table.child.symbols.items() if symbol[1].type.split('.')[0] == 'param']
+
+    if len(function_params) != len(f_call_param_stack.items()):
+        raise InvalidTypeError(f'Function {function_id} expects {len(function_params)} parameters, {len(f_call_param_stack.items())} given')
+    
+    recieved_param_types = f_call_param_type_stack.items()
+
+    for i in range(len(function_params)):
+        fp_type = function_params[i].type.split('.')[-1]
+        rp_type = recieved_param_types[i].split('.')[-1]
+
+        if fp_type != rp_type:
+            raise InvalidTypeError(f'Function {function_id} expects parameter {i + 1} of type {fp_type}, {rp_type} given')        
+
+    f_call_param_stack.clear()
+    f_call_param_type_stack.clear()
 
 def p_prints(p):
     """PRINTS : PRINT BRACKET_OPEN PRINTS_1"""
@@ -444,3 +486,17 @@ def p_error(p):
 
 # Build the parser
 parser = yacc.yacc(debug=True)
+
+def parse(data):
+    """
+    Parse the input data.
+    
+    Parameters:
+    - data (str): The data to parse.
+
+    Returns:
+    - str: The output of the parser.
+    """
+    
+    parser.parse(data)
+    return quadruples.output()

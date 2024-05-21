@@ -1,0 +1,13 @@
+GOTOψNoneψNoneψ4
++ψxψ2ψt0
+=ψt0ψNoneψz
+PRINTψzψNoneψNone
+GOTOψNoneψNoneψ9
+-ψzψ1ψt1
++ψxψyψt2
+=ψt2ψNoneψz
+PRINTψzψNoneψNone
+=ψ2ψNoneψx
+=ψ3.5ψNoneψy
+PRINTψxψNoneψNone
+PRINTψyψNoneψNone

@@ -29,7 +29,7 @@ test_cases = ["""
     var x : int;
         y : float;
 
-    void test_func(x : int, y : float) [
+    void test_func(x : int) [
         var z : int;
         {
             z = x + 2;
@@ -37,9 +37,18 @@ test_cases = ["""
         }
     ];
 
+    void test_func2(x : int, y : float) [
+        var z : int;
+        {
+            test_func(z - 1);
+            z = x + y;
+            print(z);
+        }
+    ];
+
     main {
         x = 2; y = 3.5; print(x); print(y);
-        test_func(x, y);
+        test_func2(x, y);
     }
     end
 ""","""
