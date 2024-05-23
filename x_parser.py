@@ -9,8 +9,9 @@ import ply.yacc as yacc
 from x_lexer import tokens
 from classes.stack import Stack
 from classes.symbols import Symbol, SymbolTable
-from classes.quadruples import QuadrupleList, TempManager
+from classes.quadruples import QuadrupleList
 from classes.semantic import validate_semantics
+from classes.memory import MemoryAssigner
 from classes.exceptions import (
     UndeclaredError,
     InvalidTypeError,
@@ -38,24 +39,33 @@ operand_stack = Stack('operand_stack')
 operand_type_stack = Stack('operand_type_stack')
 # Quadruple List
 quadruples = QuadrupleList()
-# Temp Manager
-temp_manager = TempManager()
+# Memory Assigner
+memory_assigner = MemoryAssigner()
 
 def p_prog(p):
-    """PROG : PROG_N1 PROG_N2 SEMICOLON PROG_1 MAIN BODY END"""
+    """PROG : PROG_N1 PROG_N2 SEMICOLON PROG_1 PROG_N3 BODY END"""
     # print('Function Directory:', function_directory)
     # print('Global:', function_directory.lookup(scope_stack.pop()).child)
     # print('Quadruples:')
     # print(quadruples)
+    # memory_assigner.display()
 
 def p_prog_n1(p):
     """PROG_N1 : PROGRAM"""
     global function_directory
     function_directory = SymbolTable()
+    quadruples.add('GOTO', -1, -1, -1)
+    jump_stack.push(quadruples.current())
 
 def p_prog_n2(p):
     """PROG_N2 : ID"""
-    function_directory.declare(Symbol(p[1], 'table.global', SymbolTable()))
+    function_directory.declare(
+        Symbol(
+            name=p[1],
+            type='table.global',
+            child=SymbolTable()
+        )
+    )
     scope_stack.push(p[1])
 
 def p_prog_1(p):
@@ -70,6 +80,11 @@ def p_prog_2(p):
 
 def p_vars(p):
     """VARS : VARS_N1 VARS_1"""
+
+def p_prog_n3(p):
+    """PROG_N3 : MAIN"""
+    main = jump_stack.pop()
+    quadruples.fill(main, quadruples.current() + 1)
 
 def p_vars_n1(p):
     """VARS_N1 : VAR"""
@@ -93,8 +108,15 @@ def p_vars_2(p):
 def p_vars_n3(p):
     """VARS_N3 : TYPE"""
     for id in id_stack.items():
+        memory_address = memory_assigner.assign(f'g_{p[1]}')
         scope_vars = function_directory.lookup(scope_stack.peek())
-        scope_vars.child.declare(Symbol(id, f'var.{p[1]}'))
+        scope_vars.child.declare(
+            Symbol(
+                name=id,
+                type=f'var.{p[1]}',
+                address=memory_address
+            )
+        )
         function_directory.update(scope_vars)
     id_stack.clear()
 
@@ -108,7 +130,15 @@ def p_funcs(p):
 
 def p_funcs_n1(p):
     """FUNCS_N1 : ID"""
-    function_directory.declare(Symbol(p[1], 'table.local', SymbolTable()))
+    memory_address = memory_assigner.assign('g_void')
+    function_directory.declare(
+        Symbol(
+            name=p[1],
+            type='table.local',
+            child=SymbolTable(),
+            address=memory_address
+        )
+    )
     scope_stack.push(p[1])
 
 def p_funcs_1(p):
@@ -123,29 +153,29 @@ def p_funcs_2(p):
 
 def p_funcs_n2(p):
     """FUNCS_N2 : ID TWO_DOTS TYPE"""
+    memory_address = memory_assigner.assign(f'l_{p[3]}')
     scope_vars = function_directory.lookup(scope_stack.peek())
-    scope_vars.child.declare(Symbol(p[1], f'param.{p[3]}'))
+    scope_vars.child.declare(Symbol(name=p[1], type=f'param.{p[3]}', address=memory_address))
     function_directory.update(scope_vars)
+
+def p_funcs_n3(p):
+    """FUNCS_N3 : SEMICOLON"""
+    scope_stack.pop()
+    quadruples.add('ENDFUNC', -1, -1, -1)
+    # print(f'Functon: {scope_to_pop}', function_directory.lookup(scope_to_pop).child)
 
 def p_funcs_3(p):
     """FUNCS_3 : COMMA FUNCS_2
             | empty
     """
 
-def p_funcs_n3(p):
-    """FUNCS_N3 : SEMICOLON"""
-    scope_to_pop = scope_stack.pop()
-    # print(f'Functon: {scope_to_pop}', function_directory.lookup(scope_to_pop).child)
-    start = jump_stack.pop()
-    quadruples.fill(start, quadruples.current() + 1)
-
 def p_funcs_n4(p):
     """FUNCS_N4 : VARS
             | empty
     """
-    #! NEURALGIC EINS
-    quadruples.add('GOTO', None, None, None)
-    jump_stack.push(quadruples.current())
+    scope_vars = function_directory.lookup(scope_stack.peek())
+    scope_vars.update_index(quadruples.current() + 1)
+    function_directory.update(scope_vars)
 
 def p_type(p):
     """TYPE : INT
@@ -191,7 +221,7 @@ def p_assignment_n3(p):
         result = assignee
         result_type = validate_semantics(assignee_type, operand_type, operator)
         
-        quadruples.add(operator, operand, None, result)
+        quadruples.add(operator, operand, -1, result)
 
         operand_stack.push(result)
         operand_type_stack.push(result_type)
@@ -207,7 +237,7 @@ def p_condition_n1(p):
         raise InvalidTypeError('Condition expression must be of type bool')
     else:
         expression_result = operand_stack.pop()
-        quadruples.add('GOTOF', expression_result, None, None)
+        quadruples.add('GOTOF', expression_result, -1, -1)
         jump_stack.push(quadruples.current())
 
 def p_condition_1(p):
@@ -222,7 +252,7 @@ def p_condition_n2(p):
 
 def p_condition_n3(p):
     """CONDITION_N3 : ELSE"""
-    quadruples.add('GOTO', None, None, None)
+    quadruples.add('GOTO', -1, -1, -1)
     false = jump_stack.pop()
     jump_stack.push(quadruples.current())
     quadruples.fill(false, quadruples.current() + 1)
@@ -242,10 +272,10 @@ def p_cycle_n2(p):
         raise InvalidTypeError('Cycle expression must be of type bool')
     else:
         expression_result = operand_stack.pop()
-        quadruples.add('GOTOT', expression_result, None, jump_stack.pop())
+        quadruples.add('GOTOT', expression_result, -1, jump_stack.pop())
 
 def p_f_call(p):
-    """F_CALL : F_CALL_N1 BRACKET_OPEN F_CALL_1"""
+    """F_CALL : F_CALL_N1 F_CALL_N4 F_CALL_1"""
 
 def p_f_call_n1(p):
     """F_CALL_N1 : ID"""
@@ -259,6 +289,7 @@ def p_f_call_n2(p):
     """F_CALL_N2 : EXPRESSION"""
     f_call_param_stack.push(operand_stack.pop())
     f_call_param_type_stack.push(operand_type_stack.pop())
+    quadruples.add('PARAM', f_call_param_stack.peek(), -1, f_call_param_stack.size() - 1)
 
 def p_f_call_2(p):
     """F_CALL_2 : COMMA F_CALL_1
@@ -283,8 +314,15 @@ def p_f_call_n3(p):
         if fp_type != rp_type:
             raise InvalidTypeError(f'Function {function_id} expects parameter {i + 1} of type {fp_type}, {rp_type} given')        
 
+    quadruples.add('GOSUB', function_table.address, -1, function_table.index)
+
     f_call_param_stack.clear()
     f_call_param_type_stack.clear()
+
+def p_f_call_n4(p):
+    """F_CALL_N4 : BRACKET_OPEN"""
+    function_address = function_directory.lookup(f_call_stack.peek()).address
+    quadruples.add('ERA', function_address, -1, -1)
 
 def p_prints(p):
     """PRINTS : PRINT BRACKET_OPEN PRINTS_1"""
@@ -294,12 +332,10 @@ def p_prints_1(p):
 
 def p_prints_n1(p):
     """PRINTS_N1 : EXPRESSION
-                | STRING_CONST
+                | CONSTANT_STRING
     """
-    if isinstance(p[1], str):
-        quadruples.add('PRINT', p[1], None, None)
-    else:
-        quadruples.add('PRINT', operand_stack.pop(), None, None)
+    quadruples.add('PRINT', operand_stack.pop(), -1, -1)
+    operand_type_stack.pop()
 
 def p_prints_2(p):
     """PRINTS_2 : COMMA PRINTS_1
@@ -333,12 +369,12 @@ def p_expression_n2(p):
         left_operand = operand_stack.pop()
         left_operand_type = operand_type_stack.pop()
 
-        result = temp_manager.new_temp()
         result_type = validate_semantics(left_operand_type, right_operand_type, operator)
+        result_address = memory_assigner.assign(f't_{result_type}')
 
-        quadruples.add(operator, left_operand, right_operand, result)
+        quadruples.add(operator, left_operand, right_operand, result_address)
 
-        operand_stack.push(result)
+        operand_stack.push(result_address)
         operand_type_stack.push(result_type)
 
 def p_exp(p):
@@ -353,12 +389,12 @@ def p_exp_n1(p):
         left_operand = operand_stack.pop()
         left_operand_type = operand_type_stack.pop()
 
-        result = temp_manager.new_temp()
         result_type = validate_semantics(left_operand_type, right_operand_type, operator)
+        result_address = memory_assigner.assign(f't_{result_type}')
 
-        quadruples.add(operator, left_operand, right_operand, result)
+        quadruples.add(operator, left_operand, right_operand, result_address)
 
-        operand_stack.push(result)
+        operand_stack.push(result_address)
         operand_type_stack.push(result_type)
 
 def p_exp_1(p):
@@ -384,12 +420,12 @@ def p_term_n1(p):
         left_operand = operand_stack.pop()
         left_operand_type = operand_type_stack.pop()
 
-        result = temp_manager.new_temp()
         result_type = validate_semantics(left_operand_type, right_operand_type, operator)
+        result_address = memory_assigner.assign(f't_{result_type}')
 
-        quadruples.add(operator, left_operand, right_operand, result)
+        quadruples.add(operator, left_operand, right_operand, result_address)
 
-        operand_stack.push(result)
+        operand_stack.push(result_address)
         operand_type_stack.push(result_type)
 
 def p_term_1(p):
@@ -431,12 +467,12 @@ def p_factor_n4(p):
     left_operand = -1 if operator_stack.pop() == '-' else 1
     left_operand_type = 'int'
 
-    result = temp_manager.new_temp()
     result_type = validate_semantics(left_operand_type, right_operand_type, operator)
+    result_address = memory_assigner.assign(f't_{result_type}')
 
-    quadruples.add(operator, left_operand, right_operand, result)
+    quadruples.add(operator, left_operand, right_operand, result_address)
 
-    operand_stack.push(result)
+    operand_stack.push(result_address)
     operand_type_stack.push(result_type)
 
 def p_factor_1(p):
@@ -458,8 +494,8 @@ def p_identifier(p):
     
     if not id_symbol:
         raise UndeclaredError(f'Symbol {p[1]} is not declared')
-    
-    operand_stack.push(p[1])
+
+    operand_stack.push(id_symbol.address)
     operand_type_stack.push(id_symbol.type)
 
 def p_constant(p):
@@ -469,13 +505,22 @@ def p_constant(p):
 
 def p_constant_int(p):
     """CONSTANT_INT : INT_CONST"""
-    operand_stack.push(p[1])
+    operand_address = memory_assigner.assign('c_int', p[1])
+    operand_stack.push(operand_address)
     operand_type_stack.push('int')
 
 def p_constant_float(p):
     """CONSTANT_FLOAT : FLOAT_CONST"""
-    operand_stack.push(p[1])
+    operand_address = memory_assigner.assign('c_float', p[1])
+    operand_stack.push(operand_address)
     operand_type_stack.push('float')
+
+
+def p_constant_string(p):
+    """CONSTANT_STRING : STRING_CONST"""
+    operand_address = memory_assigner.assign('c_string', p[1])
+    operand_stack.push(operand_address)
+    operand_type_stack.push('string')
 
 def p_empty(p):
     """empty :"""
@@ -499,4 +544,5 @@ def parse(data):
     """
     
     parser.parse(data)
-    return quadruples.output()
+    return (memory_assigner.constant_table, quadruples.output())
+    

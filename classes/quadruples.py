@@ -7,6 +7,8 @@ are a common intermediate representation in compilers, representing operations
 in a four-field structure: operator, left operand, right operand, and result.
 """
 
+from classes.operators import OPERATORS_NUMERIC
+
 class Quadruple:
     """
     This class represents a quadruple in the intermediate representation of compiled code.
@@ -52,7 +54,7 @@ class QuadrupleList:
         - right_operand (str): The right operand.
         - result (str): The result.
         """
-        self.quadruples.append(Quadruple(operator, left_operand, right_operand, result))
+        self.quadruples.append(Quadruple(OPERATORS_NUMERIC[operator], left_operand, right_operand, result))
 
     def current(self):
         """
@@ -82,40 +84,10 @@ class QuadrupleList:
             operator left_operand right_operand result
             ...
         """
-        return '\n'.join([f'{q.operator}ψ{q.left_operand}ψ{q.right_operand}ψ{q.result}' for q in self.quadruples])
+        return '\n'.join([f'{q.operator} {q.left_operand} {q.right_operand} {q.result}' for q in self.quadruples])
 
     def __str__(self):
         return '\n'.join([f'{str(i)} => ({str(q)})' for i, q in enumerate(self.quadruples)])
     
     def __repr__(self):
         return str(self)
-
-
-class TempManager:
-    """
-    This class manages temporary variables.
-
-    Attributes:
-    - temp_count (int): The temporary variable count.
-    """
-    
-    def __init__(self):
-        self.temp_count = 0
-
-    def new_temp(self):
-        """
-        Create a new temporary variable.
-
-        Returns:
-        - str: The temporary variable name.
-        """
-        temp = f't{self.temp_count}'
-        self.temp_count += 1
-        return temp
-
-    def reset(self):
-        self.temp_count = 0
-
-    def __str__(self):
-        return f't{self.temp_count}'
-    

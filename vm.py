@@ -7,3 +7,4 @@ if __name__ == "__main__":
 
     with open(f'out/{filename}', 'r') as file:
         quadruples = file.read()
+        print(quadruples)

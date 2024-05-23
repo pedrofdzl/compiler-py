@@ -9,4 +9,7 @@ if __name__ == "__main__":
         output = parse(code)
         
         with open(f'out/{filename.split(".")[0]}.dk', 'w') as file:
-            file.write(output)
+            for value, address in output[0].items():
+                file.write(f'{address}𓃱{value}\n')
+            file.write('𓃻\n')
+            file.write(output[1])

@@ -14,16 +14,29 @@ class Symbol:
     Attributes:
     - name (str): The name of the symbol.
     - type (str): The type of the symbol [var.int, var.float, param.int, param.float, table.global, table.local].
+    - address (int): The address of the symbol in memory.
     - child (SymbolTable): The child symbol table (when symbol is a table).
+    - index (int): The index of the start quadruple (when symbol is a function table).
     """
 
-    def __init__(self, name, type, child=None):
+    def __init__(self, name, type, address=None, child=None, index=None):
         self.name = name
         self.type = type
+        self.address = address
         self.child = child
+        self.index = index
+
+    def update_index(self, index):
+        """
+        Update the index of the symbol.
+
+        Parameters:
+        - index (int): The new index of the symbol.
+        """
+        self.index = index
 
     def __str__(self):
-        return f'{self.name}: {self.type}'
+        return f'[{self.address}] {self.name}: {self.type}'
 
     def __repr__(self):
         return str(self)
