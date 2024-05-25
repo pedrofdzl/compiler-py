@@ -41,7 +41,7 @@ class Stack:
         else:
             return None
 
-    def peek(self):
+    def peek(self, index = 1):
         """
         Peek at the top item of the stack.
 
@@ -49,7 +49,19 @@ class Stack:
         - The top item of the stack or None if the stack is empty.
         """
         if not self.is_empty():
-            return self.stack[-1]
+            return self.stack[-index]
+        else:
+            return None
+        
+    def first(self):
+        """
+        Get the first item of the stack.
+
+        Returns:
+        - The first item of the stack or None if the stack is empty.
+        """
+        if not self.is_empty():
+            return self.stack[0]
         else:
             return None
 

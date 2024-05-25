@@ -33,9 +33,9 @@ class Quadruple:
         return str(self)
 
 
-class QuadrupleList:
+class QuadrupleBuilder:
     """
-    This class represents a list of quadruples in the intermediate representation of compiled code.
+    Quadruple builder class for managing quadruples in the intermediate representation of compiled code.
 
     Attributes:
     - quadruples (list): The list of quadruples.
@@ -91,3 +91,47 @@ class QuadrupleList:
     
     def __repr__(self):
         return str(self)
+    
+
+class QuadrupleList:
+    """
+    Quadruple list class for managing quadruples in runtime.
+    
+    Attributes:
+    - quadruples (list): The list of quadruples.
+    """
+
+    def __init__(self):
+        self.quadruples = []
+
+    def add(self, operator, left_operand, right_operand, result):
+        """
+        Add a new quadruple to the list.
+        
+        Parameters:
+        - operator (str): The operator.
+        - left_operand (str): The left operand.
+        - right_operand (str): The right operand.
+        - result (str): The result.
+        """
+        self.quadruples.append(Quadruple(operator, left_operand, right_operand, result))
+
+    def get(self, index):
+        """
+        Get a quadruple by index.
+        
+        Parameters:
+        - index (int): The index of the quadruple.
+        
+        Returns:
+        - Quadruple: The quadruple at the index.
+        """
+        return self.quadruples[index]
+
+    def __str__(self):
+        return '\n'.join([str(q) for q in self.quadruples])
+    
+    def __repr__(self):
+        return str(self)
+
+    

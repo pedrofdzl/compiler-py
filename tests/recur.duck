@@ -1,0 +1,19 @@
+program mprogram;
+
+var x : int;
+
+void foo (bar : int) [
+    var x : int;
+    {
+        print(bar);
+        if (bar > 0) {
+            foo(bar - 1);
+        };
+    }
+];
+
+main {
+    foo(99);
+}
+
+end

@@ -14,8 +14,8 @@ void test_func(x : int) [
 void test_func2(x : int, y : float) [
     var z : int;
     {
-        test_func(z - 1);
         z = x + y;
+        test_func(z - 1);
         print(z);
     }
 ];
@@ -23,5 +23,6 @@ void test_func2(x : int, y : float) [
 main {
     x = 2; y = 3.5; print(x); print(y);
     test_func2(x, y);
+    test_func(x);
 }
 end

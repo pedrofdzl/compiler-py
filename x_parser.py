@@ -9,7 +9,7 @@ import ply.yacc as yacc
 from x_lexer import tokens
 from classes.stack import Stack
 from classes.symbols import Symbol, SymbolTable
-from classes.quadruples import QuadrupleList
+from classes.quadruples import QuadrupleBuilder
 from classes.semantic import validate_semantics
 from classes.memory import MemoryAssigner
 from classes.exceptions import (
@@ -37,8 +37,8 @@ operator_stack = Stack('operator_stack')
 operand_stack = Stack('operand_stack')
 # Operator Type Stack (expressions)
 operand_type_stack = Stack('operand_type_stack')
-# Quadruple List
-quadruples = QuadrupleList()
+# Quadruple Builder
+quadruples = QuadrupleBuilder()
 # Memory Assigner
 memory_assigner = MemoryAssigner()
 
@@ -107,9 +107,13 @@ def p_vars_2(p):
 
 def p_vars_n3(p):
     """VARS_N3 : TYPE"""
+    scope = scope_stack.peek()
+    scope_vars = function_directory.lookup(scope)
     for id in id_stack.items():
-        memory_address = memory_assigner.assign(f'g_{p[1]}')
-        scope_vars = function_directory.lookup(scope_stack.peek())
+        if scope_stack.size() > 1:
+            memory_address = memory_assigner.assign_local(scope_vars.address, f'l_{p[1]}')
+        else:
+            memory_address = memory_assigner.assign(f'g_{p[1]}')
         scope_vars.child.declare(
             Symbol(
                 name=id,
@@ -153,8 +157,9 @@ def p_funcs_2(p):
 
 def p_funcs_n2(p):
     """FUNCS_N2 : ID TWO_DOTS TYPE"""
-    memory_address = memory_assigner.assign(f'l_{p[3]}')
-    scope_vars = function_directory.lookup(scope_stack.peek())
+    scope = scope_stack.peek()
+    scope_vars = function_directory.lookup(scope)
+    memory_address = memory_assigner.assign_local(scope_vars.address, f'l_{p[3]}')
     scope_vars.child.declare(Symbol(name=p[1], type=f'param.{p[3]}', address=memory_address))
     function_directory.update(scope_vars)
 
@@ -242,7 +247,7 @@ def p_condition_n1(p):
 
 def p_condition_1(p):
     """CONDITION_1 : CONDITION_N3 BODY CONDITION_N2
-                | SEMICOLON
+                | CONDITION_N2
     """
 
 def p_condition_n2(p):
@@ -289,7 +294,7 @@ def p_f_call_n2(p):
     """F_CALL_N2 : EXPRESSION"""
     f_call_param_stack.push(operand_stack.pop())
     f_call_param_type_stack.push(operand_type_stack.pop())
-    quadruples.add('PARAM', f_call_param_stack.peek(), -1, f_call_param_stack.size() - 1)
+    quadruples.add('PARAM', f_call_param_stack.peek(), -1, -1)
 
 def p_f_call_2(p):
     """F_CALL_2 : COMMA F_CALL_1
@@ -322,7 +327,7 @@ def p_f_call_n3(p):
 def p_f_call_n4(p):
     """F_CALL_N4 : BRACKET_OPEN"""
     function_address = function_directory.lookup(f_call_stack.peek()).address
-    quadruples.add('ERA', function_address, -1, -1)
+    quadruples.add('ERA', -1, -1, function_address)
 
 def p_prints(p):
     """PRINTS : PRINT BRACKET_OPEN PRINTS_1"""
@@ -544,5 +549,6 @@ def parse(data):
     """
     
     parser.parse(data)
-    return (memory_assigner.constant_table, quadruples.output())
+    constant_table, counter_table = memory_assigner.output()
+    return (counter_table, constant_table, quadruples.output())
     
