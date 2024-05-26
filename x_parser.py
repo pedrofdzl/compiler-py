@@ -48,7 +48,7 @@ def p_prog(p):
     # print('Global:', function_directory.lookup(scope_stack.pop()).child)
     # print('Quadruples:')
     # print(quadruples)
-    # memory_assigner.display()
+    # memory_assigner.display(
 
 def p_prog_n1(p):
     """PROG_N1 : PROGRAM"""
@@ -167,7 +167,6 @@ def p_funcs_n3(p):
     """FUNCS_N3 : SEMICOLON"""
     scope_stack.pop()
     quadruples.add('ENDFUNC', -1, -1, -1)
-    # print(f'Functon: {scope_to_pop}', function_directory.lookup(scope_to_pop).child)
 
 def p_funcs_3(p):
     """FUNCS_3 : COMMA FUNCS_2

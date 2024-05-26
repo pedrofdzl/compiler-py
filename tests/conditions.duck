@@ -1,0 +1,19 @@
+program test;
+
+var x : int;
+    y : float;
+    z : float;
+
+main {
+    x = 2; y = 3.0;
+    print('x:', x);
+    print('y:', y);
+    z = x * y;
+
+    if (x < y) {
+        print('x menor que y');
+    } else {
+        print('x mayor o igual a y');
+    };
+}
+end
