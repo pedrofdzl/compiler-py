@@ -10,7 +10,7 @@ This repository contains a custom compiler implemented in Python that leverages 
 - [Usage](#usage)
 - [Project Structure](#project-structure)
 - [Components](#components)
-    - [Lexter](#lexer)
+    - [Lexer](#lexer)
     - [Parser](#parser)
     - [Intermediate Representation](#intermediate-representation)
     - [Memory Management](#memory-management)
