@@ -492,9 +492,13 @@ def p_identifier(p):
     scopes.reverse()
 
     for scope in scopes:
-        if function_directory.lookup(scope).child.lookup(p[1]):
-            id_symbol = function_directory.lookup(scope).child.lookup(p[1])
-            break
+        try:
+            symbol_table = function_directory.lookup(scope).child
+            if symbol_table.lookup(p[1]):
+                id_symbol = symbol_table.lookup(p[1])
+                break
+        except UndeclaredError:
+            continue
     
     if not id_symbol:
         raise UndeclaredError(f'Symbol {p[1]} is not declared')
