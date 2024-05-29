@@ -1,0 +1,17 @@
+program test;
+
+var x : int;
+    y : float;
+    z : float;
+
+main {
+    x = 2; y = 3.0; print(x); print(y);
+    z = x * y;
+    
+    while (z < 20) {
+        z = z + 1;
+        print(z);
+    };
+}
+
+end

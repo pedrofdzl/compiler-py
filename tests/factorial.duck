@@ -2,18 +2,16 @@ program mprogram;
 
 var factorial, i, n : int;
 
-
 main {
-    factorial = 1; 
-    i = 1; 
-    n = 5; 
+    factorial = 1;
+    i = 1;
+    n = 9;
     do {
         factorial = factorial * i;
         i = i + 1;
     } while (i < (n+1));
-    
-        
-    print("factorial", factorial); 
 
+    print("factorial", factorial); 
 }
+
 end

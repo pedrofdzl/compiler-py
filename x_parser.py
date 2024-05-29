@@ -198,7 +198,8 @@ def p_body_1(p):
 def p_statement(p):
     """STATEMENT : ASSIGNMENT
                 | CONDITION
-                | CYCLE
+                | CYCLE 
+                | CYCLE2
                 | F_CALL
                 | PRINTS
     """
@@ -277,6 +278,31 @@ def p_cycle_n2(p):
     else:
         expression_result = operand_stack.pop()
         quadruples.add('GOTOT', expression_result, -1, jump_stack.pop())
+
+def p_cycle2(p):
+    """CYCLE2 : WHILE CYCLE2_N1 EXPRESSION CYCLE2_N2 BODY CYCLE2_N3"""
+
+def p_cycle2_n1(p):
+    """CYCLE2_N1 : BRACKET_OPEN"""
+    jump_stack.push(quadruples.current() + 1)
+
+def p_cycle2_n2(p):
+    """CYCLE2_N2 : BRACKET_CLOSE"""
+    expression_type = operand_type_stack.pop()
+
+    if expression_type != 'bool':
+        raise InvalidTypeError('Cycle expression must be of type bool')
+    else:
+        expression_result = operand_stack.pop()
+        quadruples.add('GOTOF', expression_result, -1, -1)
+        jump_stack.push(quadruples.current())
+
+def p_cycle2_n3(p):
+    """CYCLE2_N3 : SEMICOLON"""
+    false = jump_stack.pop()
+    end = jump_stack.pop()
+    quadruples.add('GOTO', -1, -1, end)
+    quadruples.fill(false, quadruples.current() + 1)
 
 def p_f_call(p):
     """F_CALL : F_CALL_N1 F_CALL_N4 F_CALL_1"""

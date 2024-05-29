@@ -12,7 +12,7 @@ def execute(quadruples):
 
     while ip < len(quadruples):
         quadruple = quadruples[ip]
-
+        
         left_operand = memory_manager.access(quadruple.left_operand) if quadruple.left_operand != -1 else None
         right_operand = memory_manager.access(quadruple.right_operand) if quadruple.right_operand != -1 else None
 
